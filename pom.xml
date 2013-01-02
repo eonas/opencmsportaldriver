@@ -6,7 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 
 	<parent>
-		<groupId>de.eonas.parent</groupId>
+		<groupId>de.eonas.portal.parentpoms</groupId>
 		<artifactId>root</artifactId>
 		<version>1.0-SNAPSHOT</version>
 	</parent>
