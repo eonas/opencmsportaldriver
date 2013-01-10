@@ -3,13 +3,18 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.eonas.portal</groupId>
 	<artifactId>opencmsportaldriver</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>8.5.0-SNAPSHOT</version>
 
 	<parent>
 		<groupId>de.eonas.portal.parentpoms</groupId>
 		<artifactId>root</artifactId>
 		<version>1.0-SNAPSHOT</version>
 	</parent>
+
+    <properties>
+        <opencms.version>8.5.0-SNAPSHOT</opencms.version>
+        <pluto.version>2.0.3</pluto.version>
+    </properties>
 
 	<dependencies>
 		<dependency>
@@ -33,35 +38,35 @@
 		<dependency>
 			<groupId>org.apache.portals.pluto</groupId>
 			<artifactId>pluto-portal-driver</artifactId>
-			<version>2.0.3</version>
+			<version>${pluto.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.portals.pluto</groupId>
 			<artifactId>pluto-portal-driver-impl</artifactId>
-			<version>2.0.3</version>
+			<version>${pluto.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.portals.pluto</groupId>
 			<artifactId>pluto-container</artifactId>
-			<version>2.0.3</version>
+			<version>${pluto.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.portals.pluto</groupId>
 			<artifactId>pluto-container-api</artifactId>
-			<version>2.0.3</version>
+			<version>${pluto.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.portals.pluto</groupId>
 			<artifactId>pluto-container-driver-api</artifactId>
-			<version>2.0.3</version>
+			<version>${pluto.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.opencms</groupId>
+			<groupId>de.eonas.org.opencms</groupId>
 			<artifactId>opencms-core</artifactId>
-			<version>8.0.3.1</version>
+			<version>${opencms.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -74,6 +79,23 @@
             <groupId>com.intellij</groupId>
             <artifactId>annotations</artifactId>
             <version>9.0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.ehcache</groupId>
+            <artifactId>ehcache-core</artifactId>
+            <version>2.4.7</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.6</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.1.1</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

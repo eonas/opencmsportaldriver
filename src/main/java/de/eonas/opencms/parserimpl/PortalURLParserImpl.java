@@ -55,7 +55,9 @@ public class PortalURLParserImpl implements PortalURLParser {
 
                 @Override
                 public void run() {
-                    manager.shutdown();
+                    if ( manager != null ) {
+                        manager.shutdown();
+                    }
                 }
             });
 
