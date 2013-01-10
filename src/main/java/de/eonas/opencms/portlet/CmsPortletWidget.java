@@ -42,13 +42,17 @@ import org.apache.pluto.driver.container.PortalDriverServicesImpl;
 import org.apache.pluto.driver.services.portal.PortletWindowConfig;
 import org.jetbrains.annotations.NotNull;
 import org.opencms.file.CmsObject;
+import org.opencms.file.CmsResource;
+import org.opencms.i18n.CmsMessages;
 import org.opencms.util.CmsMacroResolver;
 import org.opencms.util.CmsStringUtil;
 import org.opencms.widgets.*;
+import org.opencms.xml.types.A_CmsXmlContentValue;
 
 import java.io.UnsupportedEncodingException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -116,53 +120,11 @@ public class CmsPortletWidget extends CmsSelectWidget {
         result.append(id);
         result.append("\">");
 
-        String metainfo = null;
+
         String selected = getSelectedValue(cms, param);
-        if (!CmsStringUtil.isEmpty(selected)) {
-            PortletWindowConfig selectedConfig = PortletWindowConfig.fromId(selected);
-            metainfo = selectedConfig.getMetaInfo();
-        }
+        ArrayList<String> listPortlets = fetchRegisteredPortlets(selected);
 
-        if (metainfo == null) {
-            metainfo = createPlacementId();
-        }
-
-        // Es wird auf die PortletContainer Instanz zugegriffen
-        PortletContainer container = (PortletContainer) m_context.getAttribute(AttributeKeys.PORTLET_CONTAINER);
-
-        PortalDriverServicesImpl driverserviceimpl = (PortalDriverServicesImpl) container.getContainerServices();
-        Iterator<DriverPortletContext> iter = driverserviceimpl.getPortletContextService().getPortletContexts();
-
-        java.util.ArrayList<String> liste = new ArrayList<String>();
-        // Das Select Element wird mit Werten der PortletApplikationen gefuellt
-        while (iter.hasNext()) {
-            DriverPortletContext portletcontext = iter.next();
-            PortletApplicationDefinition portletAppDd = portletcontext.getPortletApplicationDefinition();
-
-            String contextPath = portletcontext.getApplicationName();
-            if (contextPath.length() > 0) {
-                contextPath = "/" + contextPath;
-            }
-
-            for (PortletDefinition portlet : portletAppDd.getPortlets()) {
-                String portletName = portlet.getPortletName();
-
-                String portletId = PortletWindowConfig.createPortletId(contextPath, portletName, metainfo);
-
-                liste.add(portletId);
-            }
-        }
-
-        // Pruefung damit ein Portlet, das selektiert ist, aber zur Zeit nicht
-        // verfuegbar ist, troztdem in der Liste bleibt
-        // und nicht ausgelassen wird.
-        if (selected != null && selected.length() > 0 && !liste.contains(selected)) {
-            liste.add(selected);
-        }
-
-        java.util.Collections.sort(liste, String.CASE_INSENSITIVE_ORDER);
-
-        for (String option : liste) {
+        for (String option : listPortlets) {
             result.append("<option \"");
             try {
                 // Um die Sonderzeichen aus der Id zu kriegen, werden Sie mit
@@ -190,14 +152,57 @@ public class CmsPortletWidget extends CmsSelectWidget {
 
     }
 
-    @NotNull
-    private String createPlacementId() {
-        return "" + m_random.nextInt();
+    private ArrayList<String> fetchRegisteredPortlets(String selected) {
+        String metainfo = null;
+        if (!CmsStringUtil.isEmpty(selected)) {
+            PortletWindowConfig selectedConfig = PortletWindowConfig.fromId(selected);
+            metainfo = selectedConfig.getMetaInfo();
+        }
+
+        if (metainfo == null) {
+            metainfo = createPlacementId();
+        }
+
+        // Es wird auf die PortletContainer Instanz zugegriffen
+        PortletContainer container = (PortletContainer) m_context.getAttribute(AttributeKeys.PORTLET_CONTAINER);
+
+        PortalDriverServicesImpl driverserviceimpl = (PortalDriverServicesImpl) container.getContainerServices();
+        Iterator<DriverPortletContext> iter = driverserviceimpl.getPortletContextService().getPortletContexts();
+
+        ArrayList<String> liste = new ArrayList<String>();
+        // Das Select Element wird mit Werten der PortletApplikationen gefuellt
+        while (iter.hasNext()) {
+            DriverPortletContext portletcontext = iter.next();
+            PortletApplicationDefinition portletAppDd = portletcontext.getPortletApplicationDefinition();
+
+            String contextPath = portletcontext.getApplicationName();
+            if (contextPath.length() > 0) {
+                contextPath = "/" + contextPath;
+            }
+
+            for (PortletDefinition portlet : portletAppDd.getPortlets()) {
+                String portletName = portlet.getPortletName();
+
+                String portletId = PortletWindowConfig.createPortletId(contextPath, portletName, metainfo);
+
+                liste.add(portletId);
+            }
+        }
+
+        // Pruefung damit ein Portlet, das selektiert ist, aber zur Zeit nicht
+        // verfuegbar ist, troztdem in der Liste bleibt
+        // und nicht ausgelassen wird.
+        if (selected != null && selected.length() > 0 && !liste.contains(selected)) {
+            liste.add(selected);
+        }
+
+        Collections.sort(liste, String.CASE_INSENSITIVE_ORDER);
+        return liste;
     }
 
-    @Override
-    public String getWidgetName() {
-        return super.getWidgetName();    //To change body of overridden methods use File | Settings | File Templates.
+    @NotNull
+    private String createPlacementId() {
+        return "";
     }
 
     /**
@@ -230,4 +235,22 @@ public class CmsPortletWidget extends CmsSelectWidget {
 
         return new CmsPortletWidget(getConfiguration());
     }
+
+    @Override
+    protected List<CmsSelectWidgetOption> parseSelectOptions(
+            CmsObject cms,
+            I_CmsWidgetDialog widgetDialog,
+            I_CmsWidgetParameter param) {
+        List<CmsSelectWidgetOption> list = super.parseSelectOptions(cms, widgetDialog, param);
+
+        String selected = null;
+        ArrayList<String> portlets = fetchRegisteredPortlets(selected);
+        for (String portlet : portlets) {
+            CmsSelectWidgetOption option = new CmsSelectWidgetOption(portlet);
+            list.add(option);
+        }
+
+        return list;
+    }
+
 }
