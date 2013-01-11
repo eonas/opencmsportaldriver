@@ -42,15 +42,11 @@ import org.apache.pluto.driver.container.PortalDriverServicesImpl;
 import org.apache.pluto.driver.services.portal.PortletWindowConfig;
 import org.jetbrains.annotations.NotNull;
 import org.opencms.file.CmsObject;
-import org.opencms.file.CmsResource;
-import org.opencms.i18n.CmsMessages;
 import org.opencms.util.CmsMacroResolver;
 import org.opencms.util.CmsStringUtil;
 import org.opencms.widgets.*;
-import org.opencms.xml.types.A_CmsXmlContentValue;
 
 import java.io.UnsupportedEncodingException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -67,8 +63,6 @@ import java.util.List;
  */
 public class CmsPortletWidget extends CmsSelectWidget {
     public static javax.servlet.ServletContext m_context;
-    @NotNull
-    public static SecureRandom m_random = new SecureRandom();
 
     private static final Log LOG = LogFactory.getLog(CmsPortletWidget.class);
 
@@ -76,10 +70,12 @@ public class CmsPortletWidget extends CmsSelectWidget {
      * Creates a new input widget.
      * <p/>
      */
+    @SuppressWarnings("UnusedDeclaration")
     public CmsPortletWidget() {
-        super();
+        super(construct());
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public CmsPortletWidget(java.util.List<org.opencms.widgets.CmsSelectWidgetOption> configuration) {
         super(configuration);
     }
@@ -90,9 +86,9 @@ public class CmsPortletWidget extends CmsSelectWidget {
      *
      * @param configuration the configuration to use
      */
+    @SuppressWarnings("UnusedParameters")
     public CmsPortletWidget(String configuration) {
-
-        super(configuration);
+        super();
     }
 
     /**
@@ -152,7 +148,7 @@ public class CmsPortletWidget extends CmsSelectWidget {
 
     }
 
-    private ArrayList<String> fetchRegisteredPortlets(String selected) {
+    static private ArrayList<String> fetchRegisteredPortlets(String selected) {
         String metainfo = null;
         if (!CmsStringUtil.isEmpty(selected)) {
             PortletWindowConfig selectedConfig = PortletWindowConfig.fromId(selected);
@@ -201,7 +197,7 @@ public class CmsPortletWidget extends CmsSelectWidget {
     }
 
     @NotNull
-    private String createPlacementId() {
+    static private String createPlacementId() {
         return "";
     }
 
@@ -227,6 +223,15 @@ public class CmsPortletWidget extends CmsSelectWidget {
         return result;
     }
 
+
+    @Override
+    protected List<CmsSelectWidgetOption> parseSelectOptions(CmsObject cms, I_CmsWidgetDialog widgetDialog, I_CmsWidgetParameter param) {
+        List<CmsSelectWidgetOption> list = super.parseSelectOptions(cms, widgetDialog, param);
+        List<CmsSelectWidgetOption> portletList = construct();
+        list.addAll(portletList);
+        return list;
+    }
+
     /**
      * @see org.opencms.widgets.I_CmsWidget#newInstance()
      */
@@ -236,20 +241,17 @@ public class CmsPortletWidget extends CmsSelectWidget {
         return new CmsPortletWidget(getConfiguration());
     }
 
-    @Override
-    protected List<CmsSelectWidgetOption> parseSelectOptions(
-            CmsObject cms,
-            I_CmsWidgetDialog widgetDialog,
-            I_CmsWidgetParameter param) {
-        List<CmsSelectWidgetOption> list = super.parseSelectOptions(cms, widgetDialog, param);
+    static private List<CmsSelectWidgetOption> construct() {
 
         String selected = null;
         ArrayList<String> portlets = fetchRegisteredPortlets(selected);
+        List<CmsSelectWidgetOption> list = new ArrayList<CmsSelectWidgetOption>();
         for (String portlet : portlets) {
             CmsSelectWidgetOption option = new CmsSelectWidgetOption(portlet);
             list.add(option);
         }
-
+        CmsSelectWidgetOption option = new CmsSelectWidgetOption("");
+        list.add(option);
         return list;
     }
 
