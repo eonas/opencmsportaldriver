@@ -39,5 +39,6 @@
             timeToLiveSeconds="3600"
             diskPersistent="false"
             diskExpiryThreadIntervalSeconds="120"
+            overflowToDisk="true"
             />
 </ehcache>
