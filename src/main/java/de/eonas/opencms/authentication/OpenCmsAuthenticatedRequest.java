@@ -74,10 +74,6 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
 
     @Override
     public Enumeration getLocales() {
-        List<Locale> feasibleLocales = new ArrayList<Locale>();
-        feasibleLocales.add(new Locale("de"));
-        return Collections.enumeration(feasibleLocales);
-        /*
         CmsLocaleManager localeManager = OpenCms.getLocaleManager();
         List<Locale> availableLocales = localeManager.getAvailableLocales();
         List<Locale> defaultLocales = localeManager.getDefaultLocales();
@@ -87,7 +83,7 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
         Enumeration<Locale> requestedLocales = super.getLocales();
         while (requestedLocales.hasMoreElements()) {
             Locale requestedLocale = requestedLocales.nextElement();
-            if (availableLocales.contains(requestedLocale)) {
+            if (availableLocales.contains(requestedLocale) || availableLocales.contains(requestedLocale.getCountry())) {
                 feasibleLocales.add(requestedLocale);
             }
         }
@@ -97,6 +93,5 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
         }
 
         return Collections.enumeration(feasibleLocales);
-        */
     }
 }
