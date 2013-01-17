@@ -159,6 +159,10 @@ public class CmsPortletWidget extends CmsSelectWidget {
             metainfo = createPlacementId();
         }
 
+        if ( m_context == null ) {
+            LOG.warn("ServletContext still unset. Maybe the listener is missing?");
+            return new ArrayList<String>();
+        }
         // Es wird auf die PortletContainer Instanz zugegriffen
         PortletContainer container = (PortletContainer) m_context.getAttribute(AttributeKeys.PORTLET_CONTAINER);
 
