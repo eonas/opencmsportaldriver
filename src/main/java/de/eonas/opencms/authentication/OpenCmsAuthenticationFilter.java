@@ -1,5 +1,6 @@
 package de.eonas.opencms.authentication;
 
+import org.apache.commons.lang.LocaleUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NotNull;
@@ -114,7 +115,7 @@ public class OpenCmsAuthenticationFilter implements Filter {
         String[] localeStringList = localeString.split(",");
         for (String s : localeStringList) {
             if (s != null) {
-                Locale loc = Locale.forLanguageTag(s);
+                Locale loc = LocaleUtils.toLocale(s);
                 list.add(loc);
             }
         }
