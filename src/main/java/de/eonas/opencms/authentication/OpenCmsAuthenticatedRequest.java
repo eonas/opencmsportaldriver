@@ -26,13 +26,15 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
     private String guest = "guest";
     private CmsObject cmsobject;
     private CmsSessionInfo sesinfo;
+    private List<Locale> availableLocales;
 
-    public OpenCmsAuthenticatedRequest(@NotNull HttpServletRequest r, CmsObject cmsobject, CmsSessionInfo sesinfo, CmsUser user, String guest) {
+    public OpenCmsAuthenticatedRequest(@NotNull HttpServletRequest r, CmsObject cmsobject, CmsSessionInfo sesinfo, CmsUser user, String guest, List<Locale> availableLocales) {
         super(r);
         this.user = user;
         this.guest = guest;
         this.cmsobject = cmsobject;
         this.sesinfo = sesinfo;
+        this.availableLocales = availableLocales;
 
         HttpSession session = r.getSession();
         if (session != null) {
@@ -55,10 +57,12 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
         return false;
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public CmsObject getCmsobject() {
         return cmsobject;
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public CmsSessionInfo getSesinfo() {
         return sesinfo;
     }
@@ -75,23 +79,38 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
     @Override
     public Enumeration getLocales() {
         CmsLocaleManager localeManager = OpenCms.getLocaleManager();
-        List<Locale> availableLocales = localeManager.getAvailableLocales();
         List<Locale> defaultLocales = localeManager.getDefaultLocales();
         List<Locale> feasibleLocales = new ArrayList<Locale>();
 
+        if (availableLocales != null) {
+            @SuppressWarnings("unchecked") Enumeration<Locale> requestedLocales = super.getLocales();
+            while (requestedLocales.hasMoreElements()) {
+                Locale requestedLocale = requestedLocales.nextElement();
+                if (availableLocales.contains(requestedLocale)) {
+                    // direct match, prio 1
+                    feasibleLocales.add(requestedLocale);
+                }
+            }
 
-        Enumeration<Locale> requestedLocales = super.getLocales();
-        while (requestedLocales.hasMoreElements()) {
-            Locale requestedLocale = requestedLocales.nextElement();
-            if (availableLocales.contains(requestedLocale) || availableLocales.contains(requestedLocale.getCountry())) {
-                feasibleLocales.add(requestedLocale);
+            // language comparison
+            //noinspection unchecked
+            requestedLocales = super.getLocales();
+            while (requestedLocales.hasMoreElements()) {
+                Locale requestedLocale = requestedLocales.nextElement();
+                String requestedLanguage = requestedLocale.getLanguage();
+                for (Locale availableLocale : availableLocales) {
+                    if (availableLocale.getLanguage().equals(requestedLanguage)) {
+                        feasibleLocales.add(availableLocale);
+                    }
+                }
             }
         }
 
-        if (feasibleLocales.size() == 0 && defaultLocales != null) {
+        if (feasibleLocales.size() == 0) {
             feasibleLocales.addAll(defaultLocales);
         }
 
-        return Collections.enumeration(feasibleLocales);
+        List<Locale> onlyFirstEntry = feasibleLocales.subList(0, 1);
+        return Collections.enumeration(onlyFirstEntry);
     }
 }
