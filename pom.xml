@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.eonas.portal</groupId>
 	<artifactId>opencmsportaldriver</artifactId>
-	<version>8.5.0-SNAPSHOT</version>
+	<version>8.5.1-SNAPSHOT</version>
 
 	<parent>
 		<groupId>de.eonas.portal.parentpoms</groupId>
@@ -12,7 +12,7 @@
 	</parent>
 
     <properties>
-        <opencms.version>8.5.0-SNAPSHOT</opencms.version>
+        <opencms.version>8.5.1-SNAPSHOT</opencms.version>
         <pluto.version>2.0.3</pluto.version>
     </properties>
 
