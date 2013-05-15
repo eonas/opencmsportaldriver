@@ -180,6 +180,13 @@ public class PortalURLParserImpl implements PortalURLParser {
             portalURL = new RelativePortalURLImpl();
         }
 
+        final String actionWindowId = portalURL.getActionWindow();
+        if ( actionWindowId != null ) {
+            // die parameter eines action-requests werden ohnehin URL-encoded übertragen
+            // daher muss an dieser stelle gelöscht werden
+            portalURL.clearParameters(actionWindowId);
+        }
+
         portalURL.setTransients(urlBase, servletName, this, httpSessionId);
         if (LOG.isDebugEnabled()) {
             LOG.debug(httpSessionId + ": Decoded URL to " + portalURL.toDebugString());
