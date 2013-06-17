@@ -98,4 +98,10 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
+
+		<scm>
+			<connection>scm:git:git@github.com:eonas/opencmsportaldriver.git</connection>
+			<developerConnection>scm:git:git@github.com:eonas/opencmsportaldriver.git</developerConnection>
+			<url>https://github.com/eonas/opencmsportaldriver.git</url>
+		</scm>
 </project>
