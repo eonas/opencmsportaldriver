@@ -12,7 +12,7 @@
 	</parent>
 
     <properties>
-        <opencms.version>8.5.1-SNAPSHOT</opencms.version>
+        <opencms.version>8.5.1</opencms.version>
         <pluto.version>2.0.3</pluto.version>
     </properties>
 
@@ -64,7 +64,7 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>de.eonas.org.opencms</groupId>
+			<groupId>org.opencms</groupId>
 			<artifactId>opencms-core</artifactId>
 			<version>${opencms.version}</version>
 			<scope>provided</scope>
