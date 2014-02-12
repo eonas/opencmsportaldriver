@@ -79,14 +79,14 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
     @Override
     public Enumeration getLocales() {
         CmsLocaleManager localeManager = OpenCms.getLocaleManager();
-        List<Locale> defaultLocales = localeManager.getDefaultLocales();
+        List<Locale> availableLocales = localeManager.getAvailableLocales();
         List<Locale> feasibleLocales = new ArrayList<Locale>();
 
-        if (availableLocales != null) {
+        if (this.availableLocales != null) {
             @SuppressWarnings("unchecked") Enumeration<Locale> requestedLocales = super.getLocales();
             while (requestedLocales.hasMoreElements()) {
                 Locale requestedLocale = requestedLocales.nextElement();
-                if (availableLocales.contains(requestedLocale)) {
+                if (this.availableLocales.contains(requestedLocale)) {
                     // direct match, prio 1
                     feasibleLocales.add(requestedLocale);
                 }
@@ -98,7 +98,7 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
             while (requestedLocales.hasMoreElements()) {
                 Locale requestedLocale = requestedLocales.nextElement();
                 String requestedLanguage = requestedLocale.getLanguage();
-                for (Locale availableLocale : availableLocales) {
+                for (Locale availableLocale : this.availableLocales) {
                     if (availableLocale.getLanguage().equals(requestedLanguage)) {
                         feasibleLocales.add(availableLocale);
                     }
@@ -107,7 +107,7 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
         }
 
         if (feasibleLocales.size() == 0) {
-            feasibleLocales.addAll(defaultLocales);
+            feasibleLocales.addAll(availableLocales);
         }
 
         List<Locale> onlyFirstEntry = feasibleLocales.subList(0, 1);
