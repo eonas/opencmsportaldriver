@@ -28,7 +28,7 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
     private CmsSessionInfo sesinfo;
     private List<Locale> availableLocales;
 
-    public OpenCmsAuthenticatedRequest(@NotNull HttpServletRequest r, CmsObject cmsobject, CmsSessionInfo sesinfo, CmsUser user, String guest, List<Locale> availableLocales) {
+    public OpenCmsAuthenticatedRequest(@NotNull HttpServletRequest r, CmsObject cmsobject, CmsSessionInfo sesinfo, @Nullable CmsUser user, String guest, List<Locale> availableLocales) {
         super(r);
         this.user = user;
         this.guest = guest;
@@ -78,35 +78,32 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
 
     @Override
     public Enumeration getLocales() {
-        CmsLocaleManager localeManager = OpenCms.getLocaleManager();
-        List<Locale> availableLocales = localeManager.getAvailableLocales();
         List<Locale> feasibleLocales = new ArrayList<Locale>();
 
-        if (this.availableLocales != null) {
-            @SuppressWarnings("unchecked") Enumeration<Locale> requestedLocales = super.getLocales();
-            while (requestedLocales.hasMoreElements()) {
-                Locale requestedLocale = requestedLocales.nextElement();
-                if (this.availableLocales.contains(requestedLocale)) {
-                    // direct match, prio 1
-                    feasibleLocales.add(requestedLocale);
-                }
+        if (this.availableLocales == null || this.availableLocales.size() == 0) {
+            CmsLocaleManager localeManager = OpenCms.getLocaleManager();
+            this.availableLocales = localeManager.getAvailableLocales();
+        }
+        @SuppressWarnings("unchecked") Enumeration<Locale> requestedLocales = super.getLocales();
+        while (requestedLocales.hasMoreElements()) {
+            Locale requestedLocale = requestedLocales.nextElement();
+            if (this.availableLocales.contains(requestedLocale)) {
+                // direct full match, prio 1
+                feasibleLocales.add(requestedLocale);
             }
 
             // language comparison
-            //noinspection unchecked
-            requestedLocales = super.getLocales();
-            while (requestedLocales.hasMoreElements()) {
-                Locale requestedLocale = requestedLocales.nextElement();
-                String requestedLanguage = requestedLocale.getLanguage();
-                for (Locale availableLocale : this.availableLocales) {
-                    if (availableLocale.getLanguage().equals(requestedLanguage)) {
-                        feasibleLocales.add(availableLocale);
-                    }
+            String requestedLanguage = requestedLocale.getLanguage();
+            for (Locale availableLocale : this.availableLocales) {
+                if (availableLocale.getLanguage().equals(requestedLanguage)) {
+                    // partial match, just the language ist equal
+                    feasibleLocales.add(availableLocale);
                 }
             }
         }
 
-        if (feasibleLocales.size() == 0) {
+        if (feasibleLocales.size() == 0)
+        {
             feasibleLocales.addAll(availableLocales);
         }
 
