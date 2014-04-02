@@ -1,5 +1,6 @@
 package de.eonas.opencms.parserimpl;
 
+import com.sun.xml.messaging.saaj.util.Base64;
 import de.eonas.opencms.util.Encryption;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
@@ -14,25 +15,29 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import java.io.*;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.security.SecureRandom;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 public class PortalURLParserImpl implements PortalURLParser {
-
+    public static final int MAX_STATE_LENGTH_RESSOURCE_REQUESTS = 50;
     public static final int MAX_STATE_LENGTH = 50;
     public static final String EHCACHE_PORTALURL_XML = "/ehcache-portalurl.xml";
     public static final String LINK_CACHE = "linkCache";
     public static final String STATE_CACHE = "stateCache";
+    private static final String REVERSE_LINK_CACHE = "reverseLinkCache";
+
 
     private static final String PORTAL_PARAM = "p";
 
     private static Cache linkCache;
     private static Cache stateCache;
     private static CacheManager manager;
+    private static Cache reverseLinkCache;
 
     @Nullable
     private static Encryption encryption = null;
@@ -63,8 +68,10 @@ public class PortalURLParserImpl implements PortalURLParser {
 
             manager.addCacheIfAbsent(LINK_CACHE);
             manager.addCacheIfAbsent(STATE_CACHE);
-            linkCache = manager.getCache("linkCache");
-            stateCache = manager.getCache("stateCache");
+            manager.addCacheIfAbsent(REVERSE_LINK_CACHE);
+            linkCache = manager.getCache(LINK_CACHE);
+            stateCache = manager.getCache(STATE_CACHE);
+            reverseLinkCache = manager.getCache(REVERSE_LINK_CACHE);
             if (stateCache == null) {
                 throw new IllegalArgumentException("stateCache is missing.");
             }
@@ -209,17 +216,30 @@ public class PortalURLParserImpl implements PortalURLParser {
         // Append the server URI and the servlet path.
         fullBuffer.append(relativePortalUrl.getUrlBase());
 
+        int maxStateLength = MAX_STATE_LENGTH;
+        if ( isResourceRequest ( portalURL )) {
+            maxStateLength = MAX_STATE_LENGTH_RESSOURCE_REQUESTS;
+        }
+
         String encoded = "";
         try {
             byte[] bytes = serializePortalURL(portalURL);
 
             if (bytes != null) {
-                if (bytes.length > MAX_STATE_LENGTH) {
-                    String key = String.format("%08X", sr.nextLong());
-                    Element link = new Element(key, bytes);
-                    linkCache.put(link);
-                    encoded = key;
-                    LOG.debug(httpSessionId + ": Placed entry in session linkCache: " + key + " = " + bytes.length);
+                if (bytes.length > maxStateLength) {
+                    String encodedBytes = de.eonas.opencms.util.Base64.encodeToString(bytes, false);
+                    Element link = reverseLinkCache.get(encodedBytes);
+                    if ( link == null ) {
+                        String key = String.format("%08X", sr.nextLong());
+                        link = new Element(key, bytes);
+                        linkCache.put(link);
+                        Element reverseLink = new Element(encodedBytes, key);
+                        reverseLinkCache.put(reverseLink);
+                        encoded = key;
+                        LOG.debug(httpSessionId + ": Placed entry in session linkCache: " + key + " = " + bytes.length);
+                    } else {
+                        encoded = (String) link.getValue();
+                    }
                 } else {
                     final String base64CodedString = encryption.encrypt(bytes);
                     LOG.debug(httpSessionId + ": Base64 coded String: " + base64CodedString);
@@ -269,22 +289,25 @@ public class PortalURLParserImpl implements PortalURLParser {
         return fullBuffer.toString();
     }
 
-    @NotNull
-    private RelativePortalURLImpl deSerializePortalUrl(byte[] data) throws IOException, ClassNotFoundException {
-        ObjectInputStream inReader = new ObjectInputStream(new GZIPInputStream(new ByteArrayInputStream(data)));
-        return (RelativePortalURLImpl) inReader.readObject();
+    private boolean isResourceRequest(PortalURL portalURL) {
+        return portalURL.getResourceWindow() != null;
     }
 
-    private byte[] serializePortalURL(PortalURL portalURL) throws IOException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        GZIPOutputStream compressedOut = new GZIPOutputStream(bos);
-        ObjectOutputStream out = new ObjectOutputStream(compressedOut);
-        out.writeObject(portalURL);
-        out.flush();
-        out.close();
-        compressedOut.close();
-        bos.close();
-        return bos.toByteArray();
+    @NotNull
+    public RelativePortalURLImpl deSerializePortalUrl(byte[] data) throws IOException, ClassNotFoundException {
+        String s = new String(data, "utf-8");
+        RelativePortalURLImpl impl = new RelativePortalURLImpl();
+        StringReader inReader = new StringReader(s);
+        impl.readFromStream(inReader);
+        return impl;
+    }
+
+    public byte[] serializePortalURL(PortalURL portalURL) throws IOException {
+        StringWriter writer = new StringWriter();
+        RelativePortalURLImpl impl = (RelativePortalURLImpl) portalURL;
+        impl.writeToStream(writer);
+        writer.close();
+        return writer.toString().getBytes("utf-8");
     }
 
 }

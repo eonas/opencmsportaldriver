@@ -30,8 +30,16 @@ import org.jetbrains.annotations.Nullable;
 import javax.portlet.PortletMode;
 import javax.portlet.WindowState;
 import javax.servlet.ServletContext;
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.io.Serializable;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * The portal URL.
@@ -353,76 +361,68 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
     static final MapObjectStreamTool<PortalURLParameter> parameterStreamTool = new MapObjectStreamTool<PortalURLParameter>() {
         @NotNull
         @Override
-        protected PortalURLParameter readObject(@NotNull ObjectInputStream stream) throws IOException, ClassNotFoundException {
-            String name = stream.readUTF();
-            String[] values = (String[]) stream.readObject();
-            String windowId = stream.readUTF();
+        protected PortalURLParameter readObject(@NotNull StringReader stream) throws IOException, ClassNotFoundException {
+            String name = readString(stream);
+            String[] values = readArrayOfString(stream);
+            String windowId = readString(stream);
             return new PortalURLParameter(windowId, name, values);
         }
 
         @Override
-        protected void writeObject(@NotNull ObjectOutputStream stream, @NotNull PortalURLParameter url) throws IOException {
+        protected void writeObject(@NotNull StringWriter stream, @NotNull PortalURLParameter url) throws IOException {
             final String name = url.getName();
             final String[] arrayOfValues = url.getValues();
             final String windowId = url.getWindowId();
 
-            stream.writeUTF(name);
-            stream.writeObject(arrayOfValues);
-            stream.writeUTF(windowId);
+            writeString(stream, name);
+            writeArrayOfString(stream, arrayOfValues);
+            writeString(stream, windowId);
+        }
+    };
+
+    static final MapObjectStreamTool<String[]> arrayStreamTool = new MapObjectStreamTool<String[]>() {
+        @NotNull
+        @Override
+        protected String[] readObject(StringReader stream) throws IOException, ClassNotFoundException {
+            return readArrayOfString(stream);
+        }
+
+        @Override
+        protected void writeObject(StringWriter out, String[] o) throws IOException {
+            writeArrayOfString(out, o);
         }
     };
 
     static final MapObjectStreamTool<WindowState> windowStreamTool = new MapObjectStreamTool<WindowState>() {
         @NotNull
         @Override
-        protected WindowState readObject(@NotNull ObjectInputStream stream) throws IOException, ClassNotFoundException {
-            String name = stream.readUTF();
+        protected WindowState readObject(@NotNull StringReader stream) throws IOException, ClassNotFoundException {
+            String name = readString(stream);
             return new WindowState(name);
         }
 
         @Override
-        protected void writeObject(@NotNull ObjectOutputStream stream, @NotNull WindowState state) throws IOException {
+        protected void writeObject(@NotNull StringWriter stream, @NotNull WindowState state) throws IOException {
             final String name = state.toString();
-            stream.writeUTF(name);
+            writeString(stream, name);
         }
     };
 
     static final MapObjectStreamTool<PortletMode> portletModeStreamTool = new MapObjectStreamTool<PortletMode>() {
         @NotNull
         @Override
-        protected PortletMode readObject(@NotNull ObjectInputStream stream) throws IOException, ClassNotFoundException {
-            String name = stream.readUTF();
+        protected PortletMode readObject(@NotNull StringReader stream) throws IOException, ClassNotFoundException {
+            String name = readString(stream);
             return new PortletMode(name);
         }
 
         @Override
-        protected void writeObject(@NotNull ObjectOutputStream stream, @NotNull PortletMode state) throws IOException {
+        protected void writeObject(@NotNull StringWriter stream, @NotNull PortletMode state) throws IOException {
             final String name = state.toString();
-            stream.writeUTF(name);
+            writeString(stream, name);
         }
     };
 
-
-    private void readObject(@NotNull java.io.ObjectInputStream stream)
-            throws IOException, ClassNotFoundException {
-        stream.defaultReadObject();
-        parameters = parameterStreamTool.readMap(stream);
-        windowStates = windowStreamTool.readMap(stream);
-        portletModes = portletModeStreamTool.readMap(stream);
-    }
-
-    private void writeObject(@NotNull java.io.ObjectOutputStream stream)
-            throws IOException {
-        stream.defaultWriteObject();
-        parameterStreamTool.writeMap(stream, parameters);
-        windowStreamTool.writeMap(stream, windowStates);
-        portletModeStreamTool.writeMap(stream, portletModes);
-    }
-
-    private void readObjectNoData()
-            throws ObjectStreamException {
-
-    }
 
     public String getHttpSessionId() {
         return httpSessionId;
@@ -465,5 +465,32 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         return b.toString();
     }
 
+    public void writeToStream(StringWriter out) throws IOException {
+        MapObjectStreamTool.writeString(out, renderPath);
+        MapObjectStreamTool.writeString(out, actionWindow);
+        MapObjectStreamTool.writeString(out, resourceWindow);
+        MapObjectStreamTool.writeString(out, cacheLevel);
+        MapObjectStreamTool.writeString(out, resourceID);
+        arrayStreamTool.writeMap(out, publicParameterCurrent);
+        arrayStreamTool.writeMap(out, publicParameterNew);
+        arrayStreamTool.writeMap(out, privateRenderParameters);
+        windowStreamTool.writeMap(out, windowStates);
+        portletModeStreamTool.writeMap(out, portletModes);
+        parameterStreamTool.writeMap(out, parameters);
+    }
+
+    public void readFromStream(StringReader in) throws IOException, ClassNotFoundException {
+        renderPath = MapObjectStreamTool.readString(in);
+        actionWindow = MapObjectStreamTool.readString(in);
+        resourceWindow = MapObjectStreamTool.readString(in);
+        cacheLevel = MapObjectStreamTool.readString(in);
+        resourceID = MapObjectStreamTool.readString(in);
+        publicParameterCurrent = arrayStreamTool.readMap(in);
+        publicParameterNew = arrayStreamTool.readMap(in);
+        privateRenderParameters = arrayStreamTool.readMap(in);
+        windowStates = windowStreamTool.readMap(in);
+        portletModes = portletModeStreamTool.readMap(in);
+        parameters = parameterStreamTool.readMap(in);
+    }
 }
 
