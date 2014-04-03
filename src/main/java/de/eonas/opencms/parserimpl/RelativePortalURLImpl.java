@@ -52,10 +52,15 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
 
     private static final Log LOG = LogFactory.getLog(RelativePortalURLImpl.class);
 
+    @Nullable
     private String renderPath;
+    @Nullable
     private String actionWindow;
+    @Nullable
     private String resourceWindow;
+    @Nullable
     private String cacheLevel;
+    @Nullable
     private String resourceID;
 
     private Map<String, String[]> publicParameterCurrent = new HashMap<String, String[]>();
@@ -69,8 +74,11 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
     transient private String contextPath;
     transient private String httpSessionId;
     transient private PortalURLParser urlParser;
+    @NotNull
     transient private Map<String, WindowState> windowStates = new HashMap<String, WindowState>();
+    @NotNull
     transient private Map<String, PortletMode> portletModes = new HashMap<String, PortletMode>();
+    @NotNull
     transient private Map<String, PortalURLParameter> parameters = new HashMap<String, PortalURLParameter>();
 
     /**
@@ -92,10 +100,11 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
 
     // Public Methods ----------------------------------------------------------
 
-    public void setRenderPath(String renderPath) {
+    public void setRenderPath(@Nullable String renderPath) {
         this.renderPath = renderPath;
     }
 
+    @Nullable
     public String getRenderPath() {
         return renderPath;
     }
@@ -104,14 +113,16 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         parameters.put(param.getWindowId() + param.getName(), param);
     }
 
+    @NotNull
     public Collection<PortalURLParameter> getParameters() {
         return parameters.values();
     }
 
-    public void setActionWindow(String actionWindow) {
+    public void setActionWindow(@Nullable String actionWindow) {
         this.actionWindow = actionWindow;
     }
 
+    @Nullable
     public String getActionWindow() {
         return actionWindow;
     }
@@ -181,14 +192,16 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         this.cacheLevel = cacheLevel;
     }
 
+    @Nullable
     public String getCacheability() {
         return cacheLevel;
     }
 
-    public void setResourceID(String resourceID) {
+    public void setResourceID(@Nullable String resourceID) {
         this.resourceID = resourceID;
     }
 
+    @Nullable
     public String getResourceID() {
         return resourceID;
     }
@@ -240,6 +253,7 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
      *
      * @return a copy of itself.
      */
+    @SuppressWarnings({"CloneDoesntDeclareCloneNotSupportedException", "CloneDoesntCallSuperClone"})
     @NotNull
     @Override
     public synchronized PortalURL clone() {
@@ -331,11 +345,12 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
                 AttributeKeys.DRIVER_CONFIG)).getPageConfig(requestedPageId);
     }
 
+    @Nullable
     public String getResourceWindow() {
         return resourceWindow;
     }
 
-    public void setResourceWindow(String resourceWindow) {
+    public void setResourceWindow(@Nullable String resourceWindow) {
         this.resourceWindow = resourceWindow;
     }
 
@@ -362,6 +377,7 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         }
     }
 
+    @Nullable
     static final MapObjectStreamTool<PortalURLParameter> parameterStreamTool = new MapObjectStreamTool<PortalURLParameter>() {
         @NotNull
         @Override
@@ -384,19 +400,21 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         }
     };
 
+    @Nullable
     static final MapObjectStreamTool<String[]> arrayStreamTool = new MapObjectStreamTool<String[]>() {
-        @NotNull
+        @Nullable
         @Override
-        protected String[] readObject(StringReader stream) throws IOException, ClassNotFoundException {
+        protected String[] readObject(@NotNull StringReader stream) throws IOException, ClassNotFoundException {
             return readArrayOfString(stream);
         }
 
         @Override
-        protected void writeObject(StringWriter out, String[] o) throws IOException {
+        protected void writeObject(@NotNull StringWriter out, String[] o) throws IOException {
             writeArrayOfString(out, o);
         }
     };
 
+    @Nullable
     static final MapObjectStreamTool<WindowState> windowStreamTool = new MapObjectStreamTool<WindowState>() {
         @NotNull
         @Override
@@ -412,6 +430,7 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         }
     };
 
+    @Nullable
     static final MapObjectStreamTool<PortletMode> portletModeStreamTool = new MapObjectStreamTool<PortletMode>() {
         @NotNull
         @Override
@@ -436,6 +455,7 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         return urlBase;
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public void setUrlBase(String urlBase) {
         this.urlBase = urlBase;
     }
@@ -468,12 +488,12 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
 
         for (Map.Entry<String, PortalURLParameter> e : params.entrySet()) {
             PortalURLParameter p = e.getValue();
-            b.append("(key " + e.getKey() + " = " + Arrays.asList(p.getValues()) + "( " + p.getWindowId() + ")");
+            b.append("(key ").append(e.getKey()).append(" = ").append(Arrays.asList(p.getValues())).append("( ").append(p.getWindowId()).append(")");
         }
         return b.toString();
     }
 
-    public void writeToStream(StringWriter out) throws IOException {
+    public void writeToStream(@NotNull StringWriter out) throws IOException {
         MapObjectStreamTool.writeString(out, renderPath);
         MapObjectStreamTool.writeString(out, actionWindow);
         MapObjectStreamTool.writeString(out, resourceWindow);
@@ -487,7 +507,7 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         parameterStreamTool.writeMap(out, parameters);
     }
 
-    public void readFromStream(StringReader in) throws IOException, ClassNotFoundException {
+    public void readFromStream(@NotNull StringReader in) throws IOException, ClassNotFoundException {
         renderPath = MapObjectStreamTool.readString(in);
         actionWindow = MapObjectStreamTool.readString(in);
         resourceWindow = MapObjectStreamTool.readString(in);
@@ -532,6 +552,7 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         resourceWindow = PortalURLParserImpl.SHARED;
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public String getContextPath() {
         return contextPath;
     }

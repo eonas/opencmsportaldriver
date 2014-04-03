@@ -4,6 +4,7 @@ import junit.framework.TestCase;
 import org.apache.pluto.driver.url.PortalURL;
 import org.apache.pluto.driver.url.PortalURLParameter;
 import org.apache.pluto.driver.url.PortalURLParser;
+import org.jetbrains.annotations.NotNull;
 
 import javax.portlet.PortletMode;
 import javax.portlet.WindowState;
@@ -63,7 +64,7 @@ public class PortalURLParserImplTest extends TestCase {
     }
 
 
-    private void loopback(PortalURLParser parser, PortalURLParserImpl parserImpl, RelativePortalURLImpl portalURL1) throws IOException, ClassNotFoundException {
+    private void loopback(PortalURLParser parser, @NotNull PortalURLParserImpl parserImpl, @NotNull RelativePortalURLImpl portalURL1) throws IOException, ClassNotFoundException {
         portalURL1.setTransients("urlBase", "servletPath", parser, "httpSessionId", "");
         String text = parserImpl.serializePortalURL(portalURL1);
         byte[] bytes = text.getBytes("utf-8");

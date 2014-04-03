@@ -76,6 +76,7 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
         return super.getLocale();
     }
 
+    @NotNull
     @Override
     public Enumeration getLocales() {
         List<Locale> feasibleLocales = new ArrayList<Locale>();

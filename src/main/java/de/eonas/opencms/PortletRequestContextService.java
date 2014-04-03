@@ -10,6 +10,7 @@ import org.apache.pluto.container.PortletWindow;
 import org.apache.pluto.driver.services.container.PortletActionResponseContextImpl;
 import org.apache.pluto.driver.services.container.PortletEventResponseContextImpl;
 import org.apache.pluto.driver.services.container.PortletRenderResponseContextImpl;
+import org.jetbrains.annotations.NotNull;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -17,6 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 @SuppressWarnings("UnusedDeclaration")
 public class PortletRequestContextService extends org.apache.pluto.driver.services.container.PortletRequestContextServiceImpl {
 
+    @NotNull
     public PortletActionResponseContext getPortletActionResponseContext(PortletContainer container,
                                                                         HttpServletRequest containerRequest,
                                                                         HttpServletResponse containerResponse,
@@ -24,12 +26,14 @@ public class PortletRequestContextService extends org.apache.pluto.driver.servic
         return new PortletActionResponseContextImpl(container, containerRequest, containerResponse, window);
     }
 
+    @NotNull
     public PortletEventResponseContext getPortletEventResponseContext(PortletContainer container,
                                                                       HttpServletRequest containerRequest,
                                                                       HttpServletResponse containerResponse, PortletWindow window) {
         return new PortletEventResponseContextImpl(container, containerRequest, containerResponse, window);
     }
 
+    @NotNull
     public PortletRenderResponseContext getPortletRenderResponseContext(PortletContainer container,
                                                                         HttpServletRequest containerRequest,
                                                                         HttpServletResponse containerResponse,
@@ -37,6 +41,7 @@ public class PortletRequestContextService extends org.apache.pluto.driver.servic
         return new PortletRenderResponseContextImpl(container, containerRequest, containerResponse, window);
     }
 
+    @NotNull
     public PortletResourceResponseContext getPortletResourceResponseContext(PortletContainer container,
                                                                             HttpServletRequest containerRequest,
                                                                             HttpServletResponse containerResponse,

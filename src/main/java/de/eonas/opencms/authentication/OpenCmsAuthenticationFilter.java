@@ -118,7 +118,8 @@ public class OpenCmsAuthenticationFilter implements Filter {
         }
     }
 
-    private List<Locale> extractLocales(String localeString) {
+    @Nullable
+    private List<Locale> extractLocales(@Nullable String localeString) {
         if (localeString == null) return null;
         List<Locale> list = new ArrayList<Locale>();
 

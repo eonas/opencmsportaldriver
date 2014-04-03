@@ -2,6 +2,7 @@ package de.eonas.opencms.responses;
 
 import org.apache.pluto.container.PortletContainer;
 import org.apache.pluto.container.PortletWindow;
+import org.jetbrains.annotations.Nullable;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -24,7 +25,7 @@ public class PortletResourceResponseContextImpl extends org.apache.pluto.driver.
     }
 
     @SuppressWarnings("SimplifiableIfStatement")
-    boolean isNull(String s) {
+    boolean isNull(@Nullable String s) {
         if (s == null) return true;
         return s.length() == 0;
     }

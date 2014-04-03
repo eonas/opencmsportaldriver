@@ -41,6 +41,7 @@ import org.apache.pluto.driver.AttributeKeys;
 import org.apache.pluto.driver.container.PortalDriverServicesImpl;
 import org.apache.pluto.driver.services.portal.PortletWindowConfig;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.opencms.file.CmsObject;
 import org.opencms.util.CmsMacroResolver;
 import org.opencms.util.CmsStringUtil;
@@ -101,6 +102,7 @@ public class CmsPortletWidget extends CmsSelectWidget {
      *      org.opencms.widgets.I_CmsWidgetDialog,
      *      org.opencms.widgets.I_CmsWidgetParameter)
      */
+    @NotNull
     public String getDialogWidget(CmsObject cms, I_CmsWidgetDialog widgetDialog, @NotNull I_CmsWidgetParameter param) {
 
         String id = param.getId();
@@ -148,7 +150,8 @@ public class CmsPortletWidget extends CmsSelectWidget {
 
     }
 
-    static private ArrayList<String> fetchRegisteredPortlets(String selected) {
+    @NotNull
+    static private ArrayList<String> fetchRegisteredPortlets(@Nullable String selected) {
         String metainfo = null;
         if (!CmsStringUtil.isEmpty(selected)) {
             PortletWindowConfig selectedConfig = PortletWindowConfig.fromId(selected);
@@ -245,10 +248,10 @@ public class CmsPortletWidget extends CmsSelectWidget {
         return new CmsPortletWidget(getConfiguration());
     }
 
+    @NotNull
     static private List<CmsSelectWidgetOption> construct() {
 
-        String selected = null;
-        ArrayList<String> portlets = fetchRegisteredPortlets(selected);
+        ArrayList<String> portlets = fetchRegisteredPortlets(null);
         List<CmsSelectWidgetOption> list = new ArrayList<CmsSelectWidgetOption>();
         for (String portlet : portlets) {
             CmsSelectWidgetOption option = new CmsSelectWidgetOption(portlet);

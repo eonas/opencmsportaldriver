@@ -2,6 +2,7 @@ package de.eonas.opencms.util;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.crypto.*;
@@ -25,10 +26,10 @@ public class Encryption {
     };
 
     // JCE supported standard symmetric encryption methods
-    public static final String METHOD_DES = "DES";
-    public static final String METHOD_3DES = "DESede";
+    /* public static final String METHOD_DES = "DES";
+    public static final String METHOD_3DES = "DESede"; */
     public static final String METHOD_AES = "AES";
-    public static final String METHOD_BF = "Blowfish";
+    /* public static final String METHOD_BF = "Blowfish"; */
 
     private static final String DEFAULT_METHOD = METHOD_AES;
     private static final boolean NO_LINE_SEP = false;
@@ -56,14 +57,14 @@ public class Encryption {
     }
 
     private static boolean registerJCE() {
-        for (int i = 0; i < SECURITY_PROVIDER.length; i++) {
+        for (String aSECURITY_PROVIDER : SECURITY_PROVIDER) {
             try {
-                Class<?> clazz = Class.forName(SECURITY_PROVIDER[i]);
+                Class<?> clazz = Class.forName(aSECURITY_PROVIDER);
                 Security.addProvider((Provider) clazz.newInstance());
                 Cipher.getInstance(DEFAULT_METHOD);
                 return true;
             } catch (Throwable t) {
-                LOG.debug("Could not initialize " + SECURITY_PROVIDER[i], t);
+                LOG.debug("Could not initialize " + aSECURITY_PROVIDER, t);
             }
         }
         LOG.warn("Could not initialize any security provider.");
@@ -93,6 +94,7 @@ public class Encryption {
         key = keygen.generateKey();
     }
 
+    @NotNull
     public String encrypt(@Nullable byte[] value) throws IllegalBlockSizeException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, BadPaddingException {
         if (value == null) return "";
         byte[] a = crypt(Cipher.ENCRYPT_MODE, value);

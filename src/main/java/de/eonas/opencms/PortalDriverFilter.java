@@ -1,18 +1,5 @@
 package de.eonas.opencms;
 
-import java.io.IOException;
-
-import javax.portlet.PortletException;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.pluto.container.PortletContainer;
 import org.apache.pluto.container.PortletContainerException;
 import org.apache.pluto.driver.AttributeKeys;
@@ -24,6 +11,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.portlet.PortletException;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * The controller filter used to drive static portlet pages (see <a
@@ -67,6 +66,7 @@ public class PortalDriverFilter implements Filter {
 	public void init(@NotNull FilterConfig filterConfig) throws ServletException {
 		servletContext = filterConfig.getServletContext();
 		container = (PortletContainer) servletContext.getAttribute(AttributeKeys.PORTLET_CONTAINER);
+        if (container == null) throw new IllegalStateException("Unable to fetch Portlet Container from Spring Context!");
 	}
 
 	/**
@@ -132,6 +132,7 @@ public class PortalDriverFilter implements Filter {
 	 *         was NOT processed.
 	 */
 	public boolean doPortletPrepare(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+        if (container == null) throw new IllegalStateException("Portlet Container is null!");
 
 		boolean requestProcessed = false;
 
