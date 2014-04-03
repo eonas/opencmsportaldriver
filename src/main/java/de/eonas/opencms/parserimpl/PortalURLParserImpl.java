@@ -1,6 +1,5 @@
 package de.eonas.opencms.parserimpl;
 
-import com.sun.xml.messaging.saaj.util.Base64;
 import de.eonas.opencms.util.Encryption;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
@@ -22,6 +21,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.security.SecureRandom;
+import java.util.Collection;
+import java.util.HashMap;
 
 public class PortalURLParserImpl implements PortalURLParser {
     public static final int MAX_STATE_LENGTH_RESSOURCE_REQUESTS = 50;
@@ -33,6 +34,7 @@ public class PortalURLParserImpl implements PortalURLParser {
 
 
     private static final String PORTAL_PARAM = "p";
+    public static final String SHARED = "shared";
 
     private static Cache linkCache;
     private static Cache stateCache;
@@ -46,6 +48,8 @@ public class PortalURLParserImpl implements PortalURLParser {
     private static SecureRandom sr;
     private static final boolean stateCacheEnable = false;
 
+    @NotNull
+    private HashMap<String, RelativePortalURLImpl> sharedMapping = new HashMap<String, RelativePortalURLImpl>();
 
     static {
         try {
@@ -60,7 +64,7 @@ public class PortalURLParserImpl implements PortalURLParser {
 
                 @Override
                 public void run() {
-                    if ( manager != null ) {
+                    if (manager != null) {
                         manager.shutdown();
                     }
                 }
@@ -113,6 +117,7 @@ public class PortalURLParserImpl implements PortalURLParser {
      * @param request the servlet request to parse.
      * @return the portal URL.
      */
+    @SuppressWarnings("ConstantConditions")
     public PortalURL parse(@NotNull HttpServletRequest request) {
         // Construct portal URL using info retrieved from servlet request.
         String httpSessionId = "noSession";
@@ -123,19 +128,41 @@ public class PortalURLParserImpl implements PortalURLParser {
 
         LOG.debug(httpSessionId + ": Parsing URL: " + request.getRequestURL());
 
-        //String contextPath = request.getContextPath();
+        String contextPath = request.getContextPath();
         String servletName = request.getServletPath();
         String pathInfo = request.getPathInfo();
+
         if (pathInfo != null) {
             servletName += pathInfo;
         }
 
-        String urlBase = servletName; // request.getRequestURL().toString();
+        String param = request.getParameter(PORTAL_PARAM);
+
+        return getPortalURL(httpSessionId, contextPath, servletName, param);
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    public PortalURL getPortalURL(String httpSessionId, String contextPath, String url, String param) {
+        if (encryption == null) {
+            throw new IllegalStateException("Encryption is null");
+        }
 
         RelativePortalURLImpl portalURL;
-
-        String param = request.getParameter(PORTAL_PARAM);
         LOG.debug(httpSessionId + ": Parameter " + PORTAL_PARAM + ": " + param);
+
+        String sharedContextPath = contextPath + "/" + PortalURLParserImpl.SHARED + "/";
+        if (url.startsWith(sharedContextPath)) {
+            String paramAndPathInfo = url.substring(sharedContextPath.length());
+            int pos = paramAndPathInfo.indexOf('/');
+            if (pos != -1) {
+                paramAndPathInfo = paramAndPathInfo.substring(0, pos);
+            }
+            pos = paramAndPathInfo.indexOf('?');
+            if (pos != -1) {
+                paramAndPathInfo = paramAndPathInfo.substring(0,pos);
+            }
+            param = paramAndPathInfo;
+        }
 
         boolean purgeCacheOnException = false;
         try {
@@ -155,7 +182,7 @@ public class PortalURLParserImpl implements PortalURLParser {
                 }
             } else {
                 @SuppressWarnings("UnusedAssignment") Element cacheElement = stateCache.get(httpSessionId);
-                //noinspection PointlessBooleanExpression
+                //noinspection PointlessBooleanExpression,ConstantConditions
                 if (stateCacheEnable == true && cacheElement != null) {
                     data = (byte[]) cacheElement.getObjectValue();
                     purgeCacheOnException = true;
@@ -179,6 +206,16 @@ public class PortalURLParserImpl implements PortalURLParser {
             } else {
                 portalURL = new RelativePortalURLImpl();
             }
+
+            portalURL.setTransients(url, url, this, httpSessionId, contextPath);
+
+            if (isSharedResource(portalURL)) {
+                RelativePortalURLImpl newPortalUrl = reverseMapSharedResource(portalURL);
+                if (newPortalUrl == null) {
+                    throw new IllegalStateException("Reverse map for portal url failed: " + portalURL);
+                }
+                portalURL = newPortalUrl;
+            }
         } catch (Exception ex) {
             LOG.warn(ex, ex);
             if (purgeCacheOnException) {
@@ -187,14 +224,14 @@ public class PortalURLParserImpl implements PortalURLParser {
             portalURL = new RelativePortalURLImpl();
         }
 
+
         final String actionWindowId = portalURL.getActionWindow();
-        if ( actionWindowId != null ) {
+        if (actionWindowId != null) {
             // die parameter eines action-requests werden ohnehin URL-encoded übertragen
             // daher muss an dieser stelle gelöscht werden
             portalURL.clearParameters(actionWindowId);
         }
 
-        portalURL.setTransients(urlBase, servletName, this, httpSessionId);
         if (LOG.isDebugEnabled()) {
             LOG.debug(httpSessionId + ": Decoded URL to " + portalURL.toDebugString());
         }
@@ -204,65 +241,80 @@ public class PortalURLParserImpl implements PortalURLParser {
     /**
      * Converts a portal URL to a URL string.
      *
-     * @param portalURL the portal URL to convert.
+     * @param inPortalURL the portal URL to convert.
      * @return a URL string representing the portal URL.
      */
-    public String toString(@NotNull PortalURL portalURL) {
-        StringBuilder fullBuffer = new StringBuilder();
-        final RelativePortalURLImpl relativePortalUrl = (RelativePortalURLImpl) portalURL;
-        final String httpSessionId = relativePortalUrl.getHttpSessionId();
-
-        LOG.debug(httpSessionId + ": Encoding...." + relativePortalUrl.toDebugString());
-        // Append the server URI and the servlet path.
-        fullBuffer.append(relativePortalUrl.getUrlBase());
-
-        int maxStateLength = MAX_STATE_LENGTH;
-        if ( isResourceRequest ( portalURL )) {
-            maxStateLength = MAX_STATE_LENGTH_RESSOURCE_REQUESTS;
+    @NotNull
+    public String toString(@NotNull PortalURL inPortalURL) {
+        if (encryption == null) {
+            throw new IllegalStateException("Encryption is null");
         }
+        RelativePortalURLImpl portalUrl = (RelativePortalURLImpl) inPortalURL;
+        boolean isShared = false;
 
+        StringBuilder fullBuffer = new StringBuilder();
+        final String httpSessionId = portalUrl.getHttpSessionId();
         String encoded = "";
         try {
-            byte[] bytes = serializePortalURL(portalURL);
 
-            if (bytes != null) {
-                if (bytes.length > maxStateLength) {
-                    String encodedBytes = de.eonas.opencms.util.Base64.encodeToString(bytes, false);
-                    Element link = reverseLinkCache.get(encodedBytes);
-                    if ( link == null ) {
-                        String key = String.format("%08X", sr.nextLong());
-                        link = new Element(key, bytes);
-                        linkCache.put(link);
-                        Element reverseLink = new Element(encodedBytes, key);
-                        reverseLinkCache.put(reverseLink);
-                        encoded = key;
-                        LOG.debug(httpSessionId + ": Placed entry in session linkCache: " + key + " = " + bytes.length);
-                    } else {
-                        encoded = (String) link.getValue();
-                    }
+            if (shouldBeShared(portalUrl)) {
+                portalUrl = rewriteToSharedAndStore(portalUrl);
+                isShared = true;
+            }
+
+            fullBuffer.append(portalUrl.getUrlBase());
+
+            LOG.debug(httpSessionId + ": Encoding...." + portalUrl.toDebugString());
+            // Append the server URI and the servlet path.
+
+            int maxStateLength = MAX_STATE_LENGTH;
+            if (isResourceRequest(portalUrl)) {
+                maxStateLength = MAX_STATE_LENGTH_RESSOURCE_REQUESTS;
+            }
+
+            String codedPortalUrl = serializePortalURL(portalUrl);
+            byte[] bytes = codedPortalUrl.getBytes("utf-8");
+
+            if (bytes.length > maxStateLength) {
+                String encodedBytes = de.eonas.opencms.util.Base64.encodeToString(bytes, false);
+                Element link = reverseLinkCache.get(encodedBytes);
+                if (link == null) {
+                    String key = String.format("%08X", sr.nextLong());
+                    link = new Element(key, bytes);
+                    linkCache.put(link);
+                    Element reverseLink = new Element(encodedBytes, key);
+                    reverseLinkCache.put(reverseLink);
+                    encoded = key;
+                    LOG.debug(httpSessionId + ": Placed entry in session linkCache: " + key + " = " + bytes.length);
                 } else {
-                    final String base64CodedString = encryption.encrypt(bytes);
-                    LOG.debug(httpSessionId + ": Base64 coded String: " + base64CodedString);
-                    encoded = URLEncoder.encode(base64CodedString, "utf-8");
-                    LOG.debug(httpSessionId + ": URLEncoded Base64 coded String: " + encoded);
+                    encoded = (String) link.getValue();
                 }
+            } else {
+                final String base64CodedString = encryption.encrypt(bytes);
+                LOG.debug(httpSessionId + ": Base64 coded String: " + base64CodedString);
+                encoded = URLEncoder.encode(base64CodedString, "utf-8");
+                LOG.debug(httpSessionId + ": URLEncoded Base64 coded String: " + encoded);
             }
         } catch (Exception ex) {
             LOG.warn(ex, ex);
         }
 
         boolean isFirst = true;
-        if (encoded != null && encoded.length() > 0) {
-            fullBuffer.append("?" + PORTAL_PARAM + "=").append(encoded);
-            //noinspection UnusedAssignment
-            isFirst = false;
+        if (isShared) {
+            fullBuffer.append("/").append(encoded);
+        } else {
+            if (encoded != null && encoded.length() > 0) {
+                fullBuffer.append("?" + PORTAL_PARAM + "=").append(encoded);
+                //noinspection UnusedAssignment
+                isFirst = false;
+            }
         }
 
         // für pluto 1.1.7 müssen wir die render-parameter mit in die http-parameter aufnehmen. für pluto 2.0.3 nicht mehr notwendig
         // offenbar für die JSR286-Bridge von Liferay notwendig, leider, primär für renderrequests
-        final String[] windows = { portalURL.getActionWindow(), portalURL.getResourceWindow() };
-        for ( String window: windows ) {
-            for (PortalURLParameter param : portalURL.getParameters()) {
+        final String[] windows = {portalUrl.getActionWindow(), portalUrl.getResourceWindow()};
+        for (String window : windows) {
+            for (PortalURLParameter param : portalUrl.getParameters()) {
                 if (param.getWindowId().equals(window)) {
                     String key = param.getName();
                     for (String value : param.getValues()) {
@@ -289,12 +341,68 @@ public class PortalURLParserImpl implements PortalURLParser {
         return fullBuffer.toString();
     }
 
-    private boolean isResourceRequest(PortalURL portalURL) {
+    private RelativePortalURLImpl reverseMapSharedResource(RelativePortalURLImpl portalURL) throws IOException {
+        String codedPortalUrl = serializePortalURL(portalURL);
+        return sharedMapping.get(codedPortalUrl);
+    }
+
+    private boolean isSharedResource(@NotNull RelativePortalURLImpl portalURL) {
+        return SHARED.equals(portalURL.getResourceWindow());
+    }
+
+    @NotNull
+    private RelativePortalURLImpl rewriteToSharedAndStore(@NotNull RelativePortalURLImpl portalURL) throws IOException {
+        RelativePortalURLImpl clone = (RelativePortalURLImpl) portalURL.clone();
+        clone.convertToSharedResource();
+        /* store the mapping somewhere */
+        String url = serializePortalURL(clone);
+        sharedMapping.put(url, portalURL);
+        return clone;
+    }
+
+    private boolean shouldBeShared(@NotNull RelativePortalURLImpl portalURL) {
+        if (!isResourceRequest(portalURL)) {
+            return false;
+        }
+
+        if ( isSharedResource(portalURL)) {
+            // to prevent double sharing
+            return false;
+        }
+
+        String libraryName = null;
+        String resourceName = null;
+
+        Collection<PortalURLParameter> parameters = portalURL.getParameters();
+        for (PortalURLParameter parameter : parameters) {
+            String name = parameter.getName();
+            if ("ln".equals(name)) {
+                libraryName = getValue(parameter);
+            }
+            if ("javax.faces.resource".equals(name)) {
+                resourceName = getValue(parameter);
+            }
+        }
+
+        return (resourceName != null && libraryName != null && libraryName.startsWith("primefaces"));
+    }
+
+    @Nullable
+    private String getValue(@Nullable PortalURLParameter parameter) {
+        if (parameter == null) return null;
+        String[] values = parameter.getValues();
+        if (values != null && values.length > 0) {
+            return values[0];
+        }
+        return null;
+    }
+
+    private boolean isResourceRequest(@NotNull PortalURL portalURL) {
         return portalURL.getResourceWindow() != null;
     }
 
     @NotNull
-    public RelativePortalURLImpl deSerializePortalUrl(byte[] data) throws IOException, ClassNotFoundException {
+    public RelativePortalURLImpl deSerializePortalUrl(@NotNull byte[] data) throws IOException, ClassNotFoundException {
         String s = new String(data, "utf-8");
         RelativePortalURLImpl impl = new RelativePortalURLImpl();
         StringReader inReader = new StringReader(s);
@@ -302,12 +410,12 @@ public class PortalURLParserImpl implements PortalURLParser {
         return impl;
     }
 
-    public byte[] serializePortalURL(PortalURL portalURL) throws IOException {
+    public String serializePortalURL(PortalURL portalURL) throws IOException {
         StringWriter writer = new StringWriter();
         RelativePortalURLImpl impl = (RelativePortalURLImpl) portalURL;
         impl.writeToStream(writer);
         writer.close();
-        return writer.toString().getBytes("utf-8");
+        return writer.toString();
     }
 
 }

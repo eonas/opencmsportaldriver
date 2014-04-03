@@ -1,6 +1,7 @@
 package de.eonas.opencms.parserimpl;
 
 import junit.framework.TestCase;
+import org.apache.pluto.driver.url.PortalURL;
 import org.apache.pluto.driver.url.PortalURLParameter;
 import org.apache.pluto.driver.url.PortalURLParser;
 
@@ -42,11 +43,32 @@ public class PortalURLParserImplTest extends TestCase {
         loopback(parser, parserImpl, portalURL2);
     }
 
+    public void testSharedUrl() throws IOException, ClassNotFoundException {
+        PortalURLParser parser = PortalURLParserImpl.getParser();
+        PortalURLParserImpl parserImpl = (PortalURLParserImpl) parser;
+
+        RelativePortalURLImpl portalURL1 = new RelativePortalURLImpl();
+        portalURL1.setTransients("/cms/asdfasd", "/cms", parser, "noSession", "");
+        portalURL1.setResourceWindow("window");
+        PortalURLParameter param = new PortalURLParameter("window", "ln", "primefaces");
+        PortalURLParameter param2 = new PortalURLParameter("window", "javax.faces.resource", "somefile.css");
+        portalURL1.addParameter(param);
+        portalURL1.addParameter(param2);
+
+        loopback(parser, parserImpl, portalURL1);
+
+        String url = parser.toString(portalURL1);
+        PortalURL parsedUrl = parserImpl.getPortalURL("noSession", "", url, null);
+        System.out.println(parsedUrl.toURL(true));
+    }
+
+
     private void loopback(PortalURLParser parser, PortalURLParserImpl parserImpl, RelativePortalURLImpl portalURL1) throws IOException, ClassNotFoundException {
-        portalURL1.setTransients("urlBase", "servletPath", parser, "httpSessionId");
-        byte[] bytes = parserImpl.serializePortalURL(portalURL1);
+        portalURL1.setTransients("urlBase", "servletPath", parser, "httpSessionId", "");
+        String text = parserImpl.serializePortalURL(portalURL1);
+        byte[] bytes = text.getBytes("utf-8");
         RelativePortalURLImpl portalURL = parserImpl.deSerializePortalUrl(bytes);
-        portalURL.setTransients("urlBase", "servletPath", parser, "httpSessionId");
+        portalURL.setTransients("urlBase", "servletPath", parser, "httpSessionId", "");
         assertEquals(portalURL.toURL(true), portalURL1.toURL(true));
     }
 }

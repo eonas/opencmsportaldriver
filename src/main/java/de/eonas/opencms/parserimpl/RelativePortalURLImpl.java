@@ -38,8 +38,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The portal URL.
@@ -64,7 +66,7 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
 
     transient private String urlBase;
     transient private String servletPath;
-    //transient private String contextPath;
+    transient private String contextPath;
     transient private String httpSessionId;
     transient private PortalURLParser urlParser;
     transient private Map<String, WindowState> windowStates = new HashMap<String, WindowState>();
@@ -80,11 +82,12 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         // Do nothing.
     }
 
-    public void setTransients(String urlBase, String servletPath, PortalURLParser urlParser, String httpSessionId) {
+    public void setTransients(String urlBase, String servletPath, PortalURLParser urlParser, String httpSessionId, String contextPath) {
         this.urlBase = urlBase;
         this.servletPath = servletPath;
         this.urlParser = urlParser;
         this.httpSessionId = httpSessionId;
+        this.contextPath = contextPath;
     }
 
     // Public Methods ----------------------------------------------------------
@@ -243,6 +246,7 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         RelativePortalURLImpl portalURL = new RelativePortalURLImpl();
         portalURL.urlBase = this.urlBase;
         portalURL.servletPath = this.servletPath;
+        portalURL.contextPath = this.contextPath;
         portalURL.parameters = new HashMap<String, PortalURLParameter>(parameters);
         portalURL.privateRenderParameters = new HashMap<String, String[]>(privateRenderParameters);
         portalURL.portletModes = new HashMap<String, PortletMode>(portletModes);
@@ -432,6 +436,10 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         return urlBase;
     }
 
+    public void setUrlBase(String urlBase) {
+        this.urlBase = urlBase;
+    }
+
     @NotNull
     public String toDebugString() {
         return "RelativePortalURLImpl [\n" +
@@ -491,6 +499,41 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
         windowStates = windowStreamTool.readMap(in);
         portletModes = portletModeStreamTool.readMap(in);
         parameters = parameterStreamTool.readMap(in);
+    }
+
+    public void convertToSharedResource() {
+        urlBase = contextPath + "/" + PortalURLParserImpl.SHARED;
+        renderPath = null;
+        actionWindow = null;
+        cacheLevel = null;
+        resourceID = null;
+        publicParameterCurrent = new HashMap<String, String[]>();
+        publicParameterNew = new HashMap<String, String[]>();
+        privateRenderParameters = new HashMap<String, String[]>();
+        windowStates = new HashMap<String, WindowState>();
+        portletModes = new HashMap<String, PortletMode>();
+        /* do not remove parameters, but rewrite to shared domain */
+        Set<PortalURLParameter> parameterSet = new HashSet<PortalURLParameter>();
+        for ( Iterator<Map.Entry<String, PortalURLParameter>> iterator = parameters.entrySet().iterator(); iterator.hasNext(); )
+        {
+            Map.Entry<String, PortalURLParameter> param = iterator.next();
+            PortalURLParameter value = param.getValue();
+            if ( value.getWindowId().equals(resourceWindow) ) {
+                PortalURLParameter newParam = new PortalURLParameter(PortalURLParserImpl.SHARED, value.getName(), value.getValues());
+                parameterSet.add(newParam);
+            }
+            iterator.remove();
+        }
+        for ( PortalURLParameter p: parameterSet )
+        {
+            addParameter(p);
+        }
+
+        resourceWindow = PortalURLParserImpl.SHARED;
+    }
+
+    public String getContextPath() {
+        return contextPath;
     }
 }
 
