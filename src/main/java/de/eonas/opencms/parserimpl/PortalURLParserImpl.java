@@ -1,6 +1,7 @@
 package de.eonas.opencms.parserimpl;
 
 import de.eonas.opencms.util.Encryption;
+import de.eonas.opencms.util.EncryptionException;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
@@ -20,73 +21,48 @@ import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PortalURLParserImpl implements PortalURLParser {
     public static final int MAX_STATE_LENGTH_RESSOURCE_REQUESTS = 50;
     public static final int MAX_STATE_LENGTH = 50;
-    public static final String EHCACHE_PORTALURL_XML = "/ehcache-portalurl.xml";
     public static final String LINK_CACHE = "linkCache";
     public static final String STATE_CACHE = "stateCache";
-    private static final String REVERSE_LINK_CACHE = "reverseLinkCache";
-
+    public static final String REVERSE_LINK_CACHE = "reverseLinkCache";
+    public static final String SHAREDLIBRARIES_PROPERTIES = "/sharedlibraries.properties";
+    public static final String EHCACHE_PORTALURL_XML = "/ehcache-portalurl.xml";
 
     private static final String PORTAL_PARAM = "p";
     public static final String SHARED = "shared";
 
-    private static Cache linkCache;
-    private static Cache stateCache;
-    private static CacheManager manager;
-    private static Cache reverseLinkCache;
+    @SuppressWarnings("FieldCanBeLocal")
+    private final boolean stateCacheEnable = false;
 
-    @Nullable
-    private static Encryption encryption = null;
-    private static final PortalURLParser PARSER = new PortalURLParserImpl();
+    private Cache linkCache;
+    private Cache stateCache;
+    private CacheManager manager;
+    private Cache reverseLinkCache;
+    private List<Pattern> libraryRegExp;
+    @NotNull
+    private Encryption encryption;
+    private SecureRandom sr;
+
+    private static PortalURLParser PARSER;
     private static final Log LOG = LogFactory.getLog(PortalURLParserImpl.class);
-    private static SecureRandom sr;
-    private static final boolean stateCacheEnable = false;
 
     @NotNull
     private HashMap<String, RelativePortalURLImpl> sharedMapping = new HashMap<String, RelativePortalURLImpl>();
 
+
     static {
-        try {
-            sr = SecureRandom.getInstance("SHA1PRNG");
-            encryption = new Encryption();
-            URL url = PortalURLParserImpl.class.getResource(EHCACHE_PORTALURL_XML);
-            if (url == null) {
-                throw new IllegalArgumentException(EHCACHE_PORTALURL_XML + " is missing.");
-            }
-            manager = new CacheManager(url);
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-
-                @Override
-                public void run() {
-                    if (manager != null) {
-                        manager.shutdown();
-                    }
-                }
-            });
-
-            manager.addCacheIfAbsent(LINK_CACHE);
-            manager.addCacheIfAbsent(STATE_CACHE);
-            manager.addCacheIfAbsent(REVERSE_LINK_CACHE);
-            linkCache = manager.getCache(LINK_CACHE);
-            stateCache = manager.getCache(STATE_CACHE);
-            reverseLinkCache = manager.getCache(REVERSE_LINK_CACHE);
-            if (stateCache == null) {
-                throw new IllegalArgumentException("stateCache is missing.");
-            }
-            if (linkCache == null) {
-                throw new IllegalArgumentException("linkCache is missing.");
-            }
-        } catch (Exception e) {
-            LOG.error(e, e);
-            e.printStackTrace();
-
-        }
     }
 
     // Constructor -------------------------------------------------------------
@@ -94,8 +70,54 @@ public class PortalURLParserImpl implements PortalURLParser {
     /**
      * Private constructor that prevents external instantiation.
      */
-    private PortalURLParserImpl() {
-        // Do nothing.
+    private PortalURLParserImpl() throws NoSuchAlgorithmException, EncryptionException, IOException {
+        sr = SecureRandom.getInstance("SHA1PRNG");
+        encryption = new Encryption();
+        URL url = PortalURLParserImpl.class.getResource(EHCACHE_PORTALURL_XML);
+        if (url == null) {
+            throw new IllegalArgumentException(EHCACHE_PORTALURL_XML + " is missing.");
+        }
+        manager = new CacheManager(url);
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+
+            @Override
+            public void run() {
+                if (manager != null) {
+                    manager.shutdown();
+                }
+            }
+        });
+
+        manager.addCacheIfAbsent(LINK_CACHE);
+        linkCache = manager.getCache(LINK_CACHE);
+        if (linkCache == null) {
+            throw new IllegalArgumentException("linkCache is missing.");
+        }
+        manager.addCacheIfAbsent(STATE_CACHE);
+        stateCache = manager.getCache(STATE_CACHE);
+        if (stateCache == null) {
+            throw new IllegalArgumentException("stateCache is missing.");
+        }
+        manager.addCacheIfAbsent(REVERSE_LINK_CACHE);
+        reverseLinkCache = manager.getCache(REVERSE_LINK_CACHE);
+        if (reverseLinkCache == null) {
+            throw new IllegalArgumentException("reverseLinkCache is missing.");
+        }
+
+        URL parameterProperties = PortalURLParserImpl.class.getResource(SHAREDLIBRARIES_PROPERTIES);
+        if (parameterProperties == null) {
+            throw new IllegalArgumentException(SHAREDLIBRARIES_PROPERTIES + " is missing.");
+        }
+
+        Properties parameter = new Properties();
+        parameter.load(parameterProperties.openStream());
+        String sharedLibRegExp = parameter.getProperty("shared", "");
+        String[] expressions = sharedLibRegExp.split(",");
+        libraryRegExp = new ArrayList<Pattern>();
+        for (String expression : expressions) {
+            Pattern compiledPattern = Pattern.compile(expression);
+            libraryRegExp.add(compiledPattern);
+        }
     }
 
     /**
@@ -105,7 +127,16 @@ public class PortalURLParserImpl implements PortalURLParser {
      */
     @SuppressWarnings("UnusedDeclaration")
     @NotNull
-    public static PortalURLParser getParser() {
+    public synchronized static PortalURLParser getParser() {
+        try {
+            if ( PARSER == null ) {
+                PARSER = new PortalURLParserImpl();
+            }
+        } catch (Exception e) {
+            LOG.error(e, e);
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
         return PARSER;
     }
 
@@ -142,7 +173,7 @@ public class PortalURLParserImpl implements PortalURLParser {
     }
 
     @SuppressWarnings("ConstantConditions")
-    public PortalURL getPortalURL(String httpSessionId, String contextPath, String url, String param) {
+    public PortalURL getPortalURL(String httpSessionId, String contextPath, @NotNull String url, String param) {
         if (encryption == null) {
             throw new IllegalStateException("Encryption is null");
         }
@@ -246,9 +277,6 @@ public class PortalURLParserImpl implements PortalURLParser {
      */
     @NotNull
     public String toString(@NotNull PortalURL inPortalURL) {
-        if (encryption == null) {
-            throw new IllegalStateException("Encryption is null");
-        }
         RelativePortalURLImpl portalUrl = (RelativePortalURLImpl) inPortalURL;
         boolean isShared = false;
 
@@ -384,7 +412,15 @@ public class PortalURLParserImpl implements PortalURLParser {
             }
         }
 
-        return (resourceName != null && libraryName != null && libraryName.startsWith("primefaces"));
+        if (resourceName != null && libraryName != null) {
+            for (Pattern pattern : libraryRegExp) {
+                Matcher matcher = pattern.matcher(libraryName);
+                if ( matcher.matches() ) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Nullable
