@@ -81,13 +81,15 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
     @NotNull
     transient private Map<String, PortalURLParameter> parameters = new HashMap<String, PortalURLParameter>();
 
+    StackTraceElement[] stackTrace;
+
     /**
      * Internal private constructor used by method <code>clone()</code>.
      *
      * @see #clone()
      */
     public RelativePortalURLImpl() {
-        // Do nothing.
+        stackTrace = Thread.currentThread().getStackTrace();
     }
 
     public void setTransients(String urlBase, String servletPath, PortalURLParser urlParser, String httpSessionId, String contextPath) {
@@ -224,6 +226,18 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
      * @see PortalURLParserImpl#toString(org.apache.pluto.driver.url.PortalURL)
      */
     public String toURL(boolean absolute) {
+        if ( urlParser == null ) {
+            if ( stackTrace != null ) {
+                StringBuilder sb = new StringBuilder();
+                for (StackTraceElement element : stackTrace) {
+                    sb.append(element.toString());
+                    sb.append("\n");
+                }
+                System.out.println("Recorded construction-trace: " + sb.toString());
+            } else {
+                System.out.println("No stack trace recorded.");
+            }
+        }
         return urlParser.toString(this);
     }
 

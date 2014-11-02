@@ -43,6 +43,8 @@ public class PortalURLParserImpl implements PortalURLParser {
     private static final String PORTAL_PARAM = "p";
     public static final String SHARED = "shared";
 
+    public static final String OPENCMSPORTALDRIVER_SHARED_ENABLE = "opencmsportaldriver.shared.enable";
+
     @SuppressWarnings("FieldCanBeLocal")
     private final boolean stateCacheEnable = false;
 
@@ -114,9 +116,13 @@ public class PortalURLParserImpl implements PortalURLParser {
         String sharedLibRegExp = parameter.getProperty("shared", "");
         String[] expressions = sharedLibRegExp.split(",");
         libraryRegExp = new ArrayList<Pattern>();
-        for (String expression : expressions) {
-            Pattern compiledPattern = Pattern.compile(expression);
-            libraryRegExp.add(compiledPattern);
+
+        String sharedEnable = System.getProperty(OPENCMSPORTALDRIVER_SHARED_ENABLE);
+        if ((sharedEnable != null) && Boolean.parseBoolean(sharedEnable)) {
+            for (String expression : expressions) {
+                Pattern compiledPattern = Pattern.compile(expression);
+                libraryRegExp.add(compiledPattern);
+            }
         }
     }
 
@@ -129,7 +135,7 @@ public class PortalURLParserImpl implements PortalURLParser {
     @NotNull
     public synchronized static PortalURLParser getParser() {
         try {
-            if ( PARSER == null ) {
+            if (PARSER == null) {
                 PARSER = new PortalURLParserImpl();
             }
         } catch (Exception e) {
@@ -190,7 +196,7 @@ public class PortalURLParserImpl implements PortalURLParser {
             }
             pos = paramAndPathInfo.indexOf('?');
             if (pos != -1) {
-                paramAndPathInfo = paramAndPathInfo.substring(0,pos);
+                paramAndPathInfo = paramAndPathInfo.substring(0, pos);
             }
             param = paramAndPathInfo;
         }
@@ -393,7 +399,7 @@ public class PortalURLParserImpl implements PortalURLParser {
             return false;
         }
 
-        if ( isSharedResource(portalURL)) {
+        if (isSharedResource(portalURL)) {
             // to prevent double sharing
             return false;
         }
@@ -415,7 +421,7 @@ public class PortalURLParserImpl implements PortalURLParser {
         if (resourceName != null && libraryName != null) {
             for (Pattern pattern : libraryRegExp) {
                 Matcher matcher = pattern.matcher(libraryName);
-                if ( matcher.matches() ) {
+                if (matcher.matches()) {
                     return true;
                 }
             }

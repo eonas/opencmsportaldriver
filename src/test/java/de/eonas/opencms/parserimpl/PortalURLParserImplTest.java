@@ -12,6 +12,13 @@ import java.io.IOException;
 
 public class PortalURLParserImplTest extends TestCase {
 
+    public void testSysParm() {
+        String sharedEnable = System.getProperty(PortalURLParserImpl.OPENCMSPORTALDRIVER_SHARED_ENABLE);
+        if ((sharedEnable != null) && Boolean.parseBoolean(sharedEnable)) {
+            throw new IllegalArgumentException("ok");
+        }
+    }
+
     public void testEncode() throws IOException, ClassNotFoundException {
         PortalURLParser parser = PortalURLParserImpl.getParser();
         PortalURLParserImpl parserImpl = (PortalURLParserImpl) parser;
