@@ -55,7 +55,7 @@ import java.util.List;
 
 /**
  * Provides a standard HTML form input widget, for use on a widget dialog.
- * <p/>
+ *
  *
  * @author Anton Seemann
  * @author Helmut Manck
@@ -69,7 +69,7 @@ public class CmsPortletWidget extends CmsSelectWidget {
 
     /**
      * Creates a new input widget.
-     * <p/>
+     *
      */
     @SuppressWarnings("UnusedDeclaration")
     public CmsPortletWidget() {
@@ -83,7 +83,7 @@ public class CmsPortletWidget extends CmsSelectWidget {
 
     /**
      * Creates a new input widget with the given configuration.
-     * <p/>
+     *
      *
      * @param configuration the configuration to use
      */
@@ -95,7 +95,7 @@ public class CmsPortletWidget extends CmsSelectWidget {
     /**
      * Diese Methode holt sich vom PortletContainer die regestrierten
      * PortletApplikationen und baut sich aus Ihnen die benoetigten PortletId.
-     * Diese werden in ein <select> Element eingebaut und im Template zur
+     * Diese werden in ein &lt;select&gt; Element eingebaut und im Template zur
      * Auswahl angeboten.
      *
      * @see org.opencms.widgets.I_CmsWidget#getDialogWidget(org.opencms.file.CmsObject,
