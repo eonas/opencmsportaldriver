@@ -43,7 +43,7 @@ public class PortalURLParserImpl implements PortalURLParser {
     private static final String PORTAL_PARAM = "p";
     public static final String SHARED = "shared";
 
-    public static final String OPENCMSPORTALDRIVER_SHARED_ENABLE = "opencmsportaldriver.shared.enable";
+    public static final String OPENCMSPORTALDRIVER_SHARED_DISABLE = "opencmsportaldriver.shared.disable";
 
     @SuppressWarnings("FieldCanBeLocal")
     private final boolean stateCacheEnable = false;
@@ -117,8 +117,8 @@ public class PortalURLParserImpl implements PortalURLParser {
         String[] expressions = sharedLibRegExp.split(",");
         libraryRegExp = new ArrayList<Pattern>();
 
-        String sharedEnable = System.getProperty(OPENCMSPORTALDRIVER_SHARED_ENABLE);
-        if ((sharedEnable != null) && Boolean.parseBoolean(sharedEnable)) {
+        String sharedDisable = System.getProperty(OPENCMSPORTALDRIVER_SHARED_DISABLE);
+        if ((sharedDisable == null) || !Boolean.parseBoolean(sharedDisable)) {
             for (String expression : expressions) {
                 Pattern compiledPattern = Pattern.compile(expression);
                 libraryRegExp.add(compiledPattern);
@@ -244,8 +244,6 @@ public class PortalURLParserImpl implements PortalURLParser {
                 portalURL = new RelativePortalURLImpl();
             }
 
-            portalURL.setTransients(url, url, this, httpSessionId, contextPath);
-
             if (isSharedResource(portalURL)) {
                 RelativePortalURLImpl newPortalUrl = reverseMapSharedResource(portalURL);
                 if (newPortalUrl == null) {
@@ -261,7 +259,6 @@ public class PortalURLParserImpl implements PortalURLParser {
             portalURL = new RelativePortalURLImpl();
         }
 
-
         final String actionWindowId = portalURL.getActionWindow();
         if (actionWindowId != null) {
             // die parameter eines action-requests werden ohnehin URL-encoded übertragen
@@ -272,6 +269,9 @@ public class PortalURLParserImpl implements PortalURLParser {
         if (LOG.isDebugEnabled()) {
             LOG.debug(httpSessionId + ": Decoded URL to " + portalURL.toDebugString());
         }
+
+        portalURL.setTransients(url, url, this, httpSessionId, contextPath);
+
         return portalURL;
     }
 

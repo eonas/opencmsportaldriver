@@ -237,6 +237,7 @@ public class RelativePortalURLImpl implements PortalURL, Serializable {
             } else {
                 System.out.println("No stack trace recorded.");
             }
+            urlParser = PortalURLParserImpl.getParser();
         }
         return urlParser.toString(this);
     }
