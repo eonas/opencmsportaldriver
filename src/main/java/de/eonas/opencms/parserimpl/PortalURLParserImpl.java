@@ -312,7 +312,7 @@ public class PortalURLParserImpl implements PortalURLParser {
             if (bytes.length > maxStateLength) {
                 String encodedBytes = de.eonas.opencms.util.Base64.encodeToString(bytes, false);
                 Element link = reverseLinkCache.get(encodedBytes);
-                if (link == null) {
+                if (link == null || !isValidEntry((String)link.getValue(), bytes) ) {
                     String key = String.format("%08X", sr.nextLong());
                     link = new Element(key, bytes);
                     linkCache.put(link);
@@ -373,6 +373,15 @@ public class PortalURLParserImpl implements PortalURLParser {
         LOG.debug(httpSessionId + ": Generated " + fullBuffer.toString());
         // Construct the string representing the portal URL.
         return fullBuffer.toString();
+    }
+
+    private boolean isValidEntry(String key, @SuppressWarnings("UnusedParameters") byte[] bytes) {
+        Element element = linkCache.get(key);
+        boolean isPresent = element != null;
+        if ( !isPresent ) {
+            LOG.warn("Element " + key + " is not valid.");
+        }
+        return isPresent;
     }
 
     private RelativePortalURLImpl reverseMapSharedResource(RelativePortalURLImpl portalURL) throws IOException {
