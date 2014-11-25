@@ -321,7 +321,13 @@ public class PortalURLParserImpl implements PortalURLParser {
                     encoded = key;
                     LOG.debug(httpSessionId + ": Placed entry in session linkCache: " + key + " = " + bytes.length);
                 } else {
-                    encoded = (String) link.getValue();
+                    String key = (String) link.getValue();
+
+                    /* refresh key */
+                    reverseLinkCache.replace(link);
+                    linkCache.replace(new Element(key, bytes));
+
+                    encoded = key;
                 }
             } else {
                 final String base64CodedString = encryption.encrypt(bytes);
