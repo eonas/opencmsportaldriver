@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.eonas.portal</groupId>
     <artifactId>opencmsportaldriver</artifactId>
-    <version>10.5.1.1-SNAPSHOT</version>
+    <version>10.5.1.1</version>
 
     <parent>
         <groupId>de.eonas.portal.parentpoms</groupId>
