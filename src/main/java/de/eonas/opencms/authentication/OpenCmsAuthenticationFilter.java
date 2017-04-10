@@ -70,28 +70,11 @@ public class OpenCmsAuthenticationFilter implements Filter {
                 CmsSessionInfo sesinfo = sesmgr.getSessionInfo(r);
                 LOG.trace("cmssession: " + sesinfo);
                 String uri = cmsObject.getRequestContext().getUri();
-                List<Locale> availableLocales = null;
-                if (uri != null) {
-                    try {
-                        // using that filter, we can't check directories with permissions
-                        // the constructed CmsObject uses Guest-Permissions to read the locale property
-                        // that's why we try to read the 1st directory's level property to get a rough
-                        // guess of what language might be supported.
-                        if (uri.length() > 1) {
-                            int nextSlash = uri.substring(1).indexOf("/");
-                            if (nextSlash != -1) {
-                                uri = uri.substring(0, nextSlash + 1);
-                            }
-                        }
-                        CmsProperty localeProperty = cmsObject.readPropertyObject(uri, "locale", true);
-                        String localeString = localeProperty.getValue();
-                        availableLocales = extractLocales(localeString);
-                    } catch (org.opencms.security.CmsPermissionViolationException ex) {
-                        LOG.info("Unable to read target locale due to permission restrictions");
-                    } catch (org.opencms.file.CmsVfsResourceNotFoundException ex) {
-                        LOG.debug("Page access not a page outside of the CMS, no language detection.");
-                    }
-                }
+
+                List<Locale> availableLocales = new ArrayList<Locale>();
+                Locale locale = cmsObject.getRequestContext().getLocale();
+
+                availableLocales.add(locale);
 
                 CmsUser cmsuser = null;
                 try {
