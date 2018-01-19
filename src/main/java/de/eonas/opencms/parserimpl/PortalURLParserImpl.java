@@ -47,6 +47,7 @@ public class PortalURLParserImpl implements PortalURLParser {
 
     @SuppressWarnings("FieldCanBeLocal")
     private final boolean stateCacheEnable = false;
+    private final ClassLoader classloader;
 
     private Cache linkCache;
     private Cache stateCache;
@@ -124,6 +125,8 @@ public class PortalURLParserImpl implements PortalURLParser {
                 libraryRegExp.add(compiledPattern);
             }
         }
+
+        classloader = Thread.currentThread().getContextClassLoader();
     }
 
     /**
@@ -202,7 +205,13 @@ public class PortalURLParserImpl implements PortalURLParser {
         }
 
         boolean purgeCacheOnException = false;
+        ClassLoader contextClassLoader = null;
         try {
+            //reset classloader to value when ehcache was initialized
+            //it used by ehcache when creating objects after deserializing
+            contextClassLoader = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(classloader);
+
             byte[] data;
             if (param != null && param.length() > 0) {
                 Element cacheElement = linkCache.get(param);
@@ -257,6 +266,8 @@ public class PortalURLParserImpl implements PortalURLParser {
                 stateCache.remove(httpSessionId);
             }
             portalURL = new RelativePortalURLImpl();
+        } finally {
+            if (contextClassLoader != null) Thread.currentThread().setContextClassLoader(contextClassLoader);
         }
 
         final String actionWindowId = portalURL.getActionWindow();
@@ -289,7 +300,12 @@ public class PortalURLParserImpl implements PortalURLParser {
         StringBuilder fullBuffer = new StringBuilder();
         final String httpSessionId = portalUrl.getHttpSessionId();
         String encoded = "";
+        ClassLoader contextClassLoader = null;
         try {
+            //reset classloader to value when ehcache was initialized
+            //it used by ehcache when creating objects after deserializing
+            contextClassLoader = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(classloader);
 
             if (shouldBeShared(portalUrl)) {
                 portalUrl = rewriteToSharedAndStore(portalUrl);
@@ -337,6 +353,8 @@ public class PortalURLParserImpl implements PortalURLParser {
             }
         } catch (Exception ex) {
             LOG.warn(ex, ex);
+        } finally {
+            if (contextClassLoader != null) Thread.currentThread().setContextClassLoader(contextClassLoader);
         }
 
         boolean isFirst = true;
