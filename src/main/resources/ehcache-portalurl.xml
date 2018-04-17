@@ -35,8 +35,8 @@
     <defaultCache
             maxElementsInMemory="10000"
             eternal="false"
-            timeToIdleSeconds="7200"
-            timeToLiveSeconds="10800"
+            timeToIdleSeconds="14400"
+            timeToLiveSeconds="0"
             diskPersistent="false"
             diskExpiryThreadIntervalSeconds="120"
             overflowToDisk="true"

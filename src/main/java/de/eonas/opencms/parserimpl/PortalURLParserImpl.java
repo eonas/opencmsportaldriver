@@ -13,6 +13,7 @@ import org.apache.pluto.driver.url.PortalURLParser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.mail.internet.MimeUtility;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
@@ -261,7 +262,14 @@ public class PortalURLParserImpl implements PortalURLParser {
                 portalURL = newPortalUrl;
             }
         } catch (Exception ex) {
-            LOG.warn(ex, ex);
+            String safeParam;
+            try {
+                safeParam = MimeUtility.encodeText(param);
+            } catch (UnsupportedEncodingException e) {
+                safeParam = "(non-encodable text)";
+            }
+
+            LOG.warn("Error while processing portal param: " + safeParam, ex);
             if (purgeCacheOnException) {
                 stateCache.remove(httpSessionId);
             }
