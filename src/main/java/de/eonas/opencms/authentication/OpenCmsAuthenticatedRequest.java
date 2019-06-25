@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import org.opencms.file.CmsObject;
 import org.opencms.file.CmsUser;
 import org.opencms.i18n.CmsLocaleManager;
+import org.opencms.main.CmsException;
 import org.opencms.main.CmsSessionInfo;
 import org.opencms.main.OpenCms;
 
@@ -45,6 +46,17 @@ public class OpenCmsAuthenticatedRequest extends HttpServletRequestWrapper {
     }
 
     public String getRemoteUser() {
+        if (sesinfo == null) {
+            // when logging in via ocee-webauth, the first getRemoteUser call fetches user info from the pre-login state (guest login)
+            // so, for every guest login, we look into the request object to find out if a login happened in the meantime
+            try {
+                sesinfo = OpenCms.getSessionManager().getSessionInfo((HttpServletRequest) ((HttpServletRequestWrapper) getRequest()).getRequest());
+                if (sesinfo != null) user = cmsobject.readUser(sesinfo.getUserId());
+            } catch (CmsException e) {
+                LOG.warn("Tried to upgrade OpenCms session from guest to user, but was not successful.", e);
+            }
+        }
+
         String username = guest;
         if (user != null)
             username = user.getName();
